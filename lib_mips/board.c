@@ -2984,7 +2984,10 @@ void gpio_test(void) {
 
 	udelay(600000);
  // ...保留原有初始化代码...
-    
+    // 启用GPIO38内部上拉
+	RALINK_REG(0xB0000608) |= (1 << 6);  // 使能上拉
+	RALINK_REG(0xB0000620) |= (1 << 6);  // 上拉高电平
+
     gpio_snapshot pre_btn = get_gpio_status();
     printf("Press WPS button now!\n");
     udelay(2000000); // 留出2秒操作时间
