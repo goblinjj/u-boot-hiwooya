@@ -2924,9 +2924,19 @@ gpio_snapshot get_gpio_status() {
     s.dat1 = RALINK_REG(0xb0000624);
     return s;
 }
+// 打印 GPIO 快照数据
+void print_gpio_snapshot(const char* label, gpio_snapshot snapshot) {
+    printf("%s:\n", label);
+    printf("DAT0: 0x%08X\n", snapshot.dat0);
+    printf("DAT1: 0x%08X\n", snapshot.dat1);
+}
 
 // 比对两次快照差异
 void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
+    // 打印两次快照数据
+    print_gpio_snapshot("Before Snapshot", before);
+    print_gpio_snapshot("After Snapshot", after);
+    
     u32 diff0 = before.dat0 ^ after.dat0;
     u32 diff1 = before.dat1 ^ after.dat1;
     u8 i=0;
@@ -2983,10 +2993,6 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
- // ...保留原有初始化代码...
-    // 启用GPIO38内部上拉
-	RALINK_REG(0xB0000608) |= (1 << 6);  // 使能上拉
-	RALINK_REG(0xB0000620) |= (1 << 6);  // 上拉高电平
 
     gpio_snapshot pre_btn = get_gpio_status();
     printf("Press WPS button now!\n");
@@ -3027,72 +3033,6 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000620)=gpio_dat0;
 	RALINK_REG(0xb0000624)=gpio_dat1;
 }
-
-void gpio_test_old( void )
-{
-	u32 agpio_cfg,gpio1_mode,gpio2_mode,val; 
-	u32 gpio_ctrl0,gpio_ctrl1,gpio_dat0,gpio_dat1;
-	u8 i=0;
-	agpio_cfg = RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c);
-	gpio1_mode= RALINK_REG(RT2880_SYS_CNTL_BASE+0x60);
-	gpio2_mode= RALINK_REG(RT2880_SYS_CNTL_BASE+0x64);
-	gpio_ctrl0= RALINK_REG(0xb0000600);
-	gpio_ctrl1= RALINK_REG(0xb0000604);
-	gpio_dat0 = RALINK_REG(0xb0000620);
-	gpio_dat1 = RALINK_REG(0xb0000624);
-	//agpio
-	val=0;
-	val|=0x0f<<17;//ephy p1-p4 selection digital PAD
-	val|=0x1f;//refclk,i2s digital PAD
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c)=val;
-	//gpio1_mode
-	val=0;
-	val|=0x05<<28;//pwm0,pwm1
-	val|=0x05<<24;//uart1,uart2
-	val|=0x01<<20;//i2c_mode
-	val|=0x01<<18;//refclk
-	val|=0x01<<14;//wdt_mode
-	val|=0x01<<10;//sd_mode
-	val|=0x01<<6;//i2s
-	val|=0x01<<4;//cs1
-	val|=0x01<<2;//spis
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=val;
-	//gpio2_mode
-	val=0;
-	val|=0x01<<10;//p4 led
-	val|=0x01<<8;//p3 led
-	val|=0x01<<6;//p2 led
-	val|=0x01<<4;//p1 led
-	val|=0x01<<2;//p0 led
-	val|=0x01<<0;//wled
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=val;
-	//ctrl0,ctrl1
-	RALINK_REG(0xb0000600)=0xffffffff;
-	RALINK_REG(0xb0000604)=0xffffffff;
-	RALINK_REG(0xb0000604)&=~(0x01<<6);
-
-	udelay(600000);
-	for(i=0;i<100;i++){
-	printf("\nall led off\n");
-	RALINK_REG(0xb0000620)=0xffffffff;
-	RALINK_REG(0xb0000624)=0xffffffff;
-	udelay(200000);
-	printf("\nall led on\n");
-	RALINK_REG(0xb0000620)=0x0;
-	RALINK_REG(0xb0000624)=0x0;
-	udelay(200000);
-	if(detect_wps())
-	break;
-	}
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c)=agpio_cfg;
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=gpio1_mode;
-	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=gpio2_mode;
-	RALINK_REG(0xb0000600)=gpio_ctrl0;
-	RALINK_REG(0xb0000604)=gpio_ctrl1;
-	RALINK_REG(0xb0000620)=gpio_dat0;
-	RALINK_REG(0xb0000624)=gpio_dat1;
-}
-
 
 
 
