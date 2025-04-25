@@ -2910,7 +2910,59 @@ int detect_wps( void )
 		return 1;
 	}
 }
-void gpio_test( void )
+void gpio_test(void) {
+    u32 agpio_cfg, gpio1_mode, gpio2_mode, val;
+    u32 gpio_ctrl0, gpio_ctrl1, gpio_dat0, gpio_dat1;
+    u8 gpio_index;
+
+    // 保存原始配置
+    agpio_cfg = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c);
+    gpio1_mode = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60);
+    gpio2_mode = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64);
+    gpio_ctrl0 = RALINK_REG(0xb0000600);
+    gpio_ctrl1 = RALINK_REG(0xb0000604);
+    gpio_dat0 = RALINK_REG(0xb0000620);
+    gpio_dat1 = RALINK_REG(0xb0000624);
+
+    // 配置 GPIO 功能为普通 GPIO
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c) = 0; // AGPIO
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60) = 0; // GPIO1_MODE
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64) = 0; // GPIO2_MODE
+
+    // 设置 GPIO 为输出模式
+    RALINK_REG(0xb0000600) = 0xFFFFFFFF; // GPIO_CTRL0
+    RALINK_REG(0xb0000604) = 0xFFFFFFFF; // GPIO_CTRL1
+
+    // 循环点亮每个 GPIO
+    for (gpio_index = 0; gpio_index < 64; gpio_index++) {
+        printf("\nTesting GPIO %d\n", gpio_index);
+
+        if (gpio_index < 32) {
+            // 控制 GPIO0-GPIO31
+            RALINK_REG(0xb0000624) = 0xFFFFFFFF; // 先关闭所有 GPIO
+            RALINK_REG(0xb0000620) = ~(1U << gpio_index); // 点亮当前 GPIO
+        } else {
+            // 控制 GPIO32-GPIO63
+            RALINK_REG(0xb0000620) = 0xFFFFFFFF; // 先关闭所有 GPIO
+            RALINK_REG(0xb0000624) = ~(1U << (gpio_index - 32)); // 点亮当前 GPIO
+        }
+
+        udelay(500000); // 延迟 500ms，使 LED 点亮可见
+    }
+
+    // 恢复原始配置
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c) = agpio_cfg;
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60) = gpio1_mode;
+    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64) = gpio2_mode;
+    RALINK_REG(0xb0000600) = gpio_ctrl0;
+    RALINK_REG(0xb0000604) = gpio_ctrl1;
+    RALINK_REG(0xb0000620) = gpio_dat0;
+    RALINK_REG(0xb0000624) = gpio_dat1;
+
+    printf("\nGPIO test completed.\n");
+}
+
+void gpio_test_old( void )
 {
 	u32 agpio_cfg,gpio1_mode,gpio2_mode,val; 
 	u32 gpio_ctrl0,gpio_ctrl1,gpio_dat0,gpio_dat1;
