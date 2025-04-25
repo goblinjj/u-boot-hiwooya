@@ -2930,13 +2930,13 @@ void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
     u32 diff0 = before.dat0 ^ after.dat0;
     u32 diff1 = before.dat1 ^ after.dat1;
     u8 i=0;
-    for (i=0; i<32; i++) {
+    for (i=0; i<64; i++) {
         if (diff0 & (1 << i)) 
             printf("GPIO%d (DAT0) changed: 0x%X -> 0x%X\n", 
                 i, (before.dat0 >> i)&1, (after.dat0 >> i)&1);
-        if (i < 16 && (diff1 & (1 << i)))
+        if (i < 32 && (diff1 & (1 << i)))
             printf("GPIO%d (DAT1) changed: 0x%X -> 0x%X\n", 
-                i+32, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
+                i+64, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
     }
 }
 
