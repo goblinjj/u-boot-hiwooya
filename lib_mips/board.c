@@ -2910,56 +2910,119 @@ int detect_wps( void )
 		return 1;
 	}
 }
-void gpio_test(void) {
-    u32 agpio_cfg, gpio1_mode, gpio2_mode, val;
-    u32 gpio_ctrl0, gpio_ctrl1, gpio_dat0, gpio_dat1;
-    u8 gpio_index;
+// GPIO状态快照结构体
+typedef struct {
+    u32 dat0;
+    u32 dat1;
+    // 扩展更多寄存器（如存在GPIO组超过32位）
+} gpio_snapshot;
 
-    // 保存原始配置
-    agpio_cfg = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c);
-    gpio1_mode = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60);
-    gpio2_mode = RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64);
-    gpio_ctrl0 = RALINK_REG(0xb0000600);
-    gpio_ctrl1 = RALINK_REG(0xb0000604);
-    gpio_dat0 = RALINK_REG(0xb0000620);
-    gpio_dat1 = RALINK_REG(0xb0000624);
+// 获取当前所有GPIO状态
+gpio_snapshot get_gpio_status() {
+    gpio_snapshot s;
+    s.dat0 = RALINK_REG(0xb0000620);
+    s.dat1 = RALINK_REG(0xb0000624);
+    return s;
+}
 
-    // 配置 GPIO 功能为普通 GPIO
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c) = 0; // AGPIO
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60) = 0; // GPIO1_MODE
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64) = 0; // GPIO2_MODE
-
-    // 设置 GPIO 为输出模式
-    RALINK_REG(0xb0000600) = 0xFFFFFFFF; // GPIO_CTRL0
-    RALINK_REG(0xb0000604) = 0xFFFFFFFF; // GPIO_CTRL1
-
-    // 循环点亮每个 GPIO
-    for (gpio_index = 0; gpio_index < 64; gpio_index++) {
-        printf("\nTesting GPIO %d\n", gpio_index);
-
-        if (gpio_index < 32) {
-            // 控制 GPIO0-GPIO31
-            RALINK_REG(0xb0000624) = 0xFFFFFFFF; // 先关闭所有 GPIO
-            RALINK_REG(0xb0000620) = ~(1U << gpio_index); // 点亮当前 GPIO
-        } else {
-            // 控制 GPIO32-GPIO63
-            RALINK_REG(0xb0000620) = 0xFFFFFFFF; // 先关闭所有 GPIO
-            RALINK_REG(0xb0000624) = ~(1U << (gpio_index - 32)); // 点亮当前 GPIO
-        }
-
-        udelay(500000); // 延迟 500ms，使 LED 点亮可见
+// 比对两次快照差异
+void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
+    u32 diff0 = before.dat0 ^ after.dat0;
+    u32 diff1 = before.dat1 ^ after.dat1;
+    
+    for (int i=0; i<32; i++) {
+        if (diff0 & (1 << i)) 
+            printf("GPIO%d (DAT0) changed: 0x%X -> 0x%X\n", 
+                i, (before.dat0 >> i)&1, (after.dat0 >> i)&1);
+        if (i < 16 && (diff1 & (1 << i)))
+            printf("GPIO%d (DAT1) changed: 0x%X -> 0x%X\n", 
+                i+32, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
     }
+}
 
-    // 恢复原始配置
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x3c) = agpio_cfg;
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x60) = gpio1_mode;
-    RALINK_REG(RT2880_SYS_CNTL_BASE + 0x64) = gpio2_mode;
-    RALINK_REG(0xb0000600) = gpio_ctrl0;
-    RALINK_REG(0xb0000604) = gpio_ctrl1;
-    RALINK_REG(0xb0000620) = gpio_dat0;
-    RALINK_REG(0xb0000624) = gpio_dat1;
+void gpio_test(void) {
+	u32 agpio_cfg,gpio1_mode,gpio2_mode,val; 
+	u32 gpio_ctrl0,gpio_ctrl1,gpio_dat0,gpio_dat1;
+	u8 i=0;
+	agpio_cfg = RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c);
+	gpio1_mode= RALINK_REG(RT2880_SYS_CNTL_BASE+0x60);
+	gpio2_mode= RALINK_REG(RT2880_SYS_CNTL_BASE+0x64);
+	gpio_ctrl0= RALINK_REG(0xb0000600);
+	gpio_ctrl1= RALINK_REG(0xb0000604);
+	gpio_dat0 = RALINK_REG(0xb0000620);
+	gpio_dat1 = RALINK_REG(0xb0000624);
+	//agpio
+	val=0;
+	val|=0x0f<<17;//ephy p1-p4 selection digital PAD
+	val|=0x1f;//refclk,i2s digital PAD
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c)=val;
+	//gpio1_mode
+	val=0;
+	val|=0x05<<28;//pwm0,pwm1
+	val|=0x05<<24;//uart1,uart2
+	val|=0x01<<20;//i2c_mode
+	val|=0x01<<18;//refclk
+	val|=0x01<<14;//wdt_mode
+	val|=0x01<<10;//sd_mode
+	val|=0x01<<6;//i2s
+	val|=0x01<<4;//cs1
+	val|=0x01<<2;//spis
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=val;
+	//gpio2_mode
+	val=0;
+	val|=0x01<<10;//p4 led
+	val|=0x01<<8;//p3 led
+	val|=0x01<<6;//p2 led
+	val|=0x01<<4;//p1 led
+	val|=0x01<<2;//p0 led
+	val|=0x01<<0;//wled
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=val;
+	//ctrl0,ctrl1
+	RALINK_REG(0xb0000600)=0xffffffff;
+	RALINK_REG(0xb0000604)=0xffffffff;
+	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
-    printf("\nGPIO test completed.\n");
+	udelay(600000);
+ // ...保留原有初始化代码...
+    
+    gpio_snapshot pre_btn = get_gpio_status();
+    printf("Press WPS button now!\n");
+    udelay(2000000); // 留出2秒操作时间
+    gpio_snapshot post_btn = get_gpio_status();
+    
+    find_changed_gpio(pre_btn, post_btn);
+    
+    // ...后续LED测试代码...
+	for(i = 0; i < 32; i++) { 
+
+		// 假设GPIO0-GPIO31分布在两个数据寄存器中
+		printf("\nTesting GPIO %d\n", i);
+		// 根据GPIO编号选择操作的数据寄存器（0x620或0x624）
+		if (i < 16) {
+		   RALINK_REG(0xb0000620) = \~(1 << i); // 点亮LED（低电平有效）
+		} else {
+		   RALINK_REG(0xb0000624) = \~(1 << (i - 16));
+		}
+		udelay(500000); // 保持点亮状态
+		// 检测WPS按钮
+		if(detect_wps()) break; 
+		// 关闭当前LED
+		if (i < 16) {
+		   RALINK_REG(0xb0000620) = 0xffffffff;
+		} else {
+		   RALINK_REG(0xb0000624) = 0xffffffff;
+		}
+		udelay(500000);
+	}
+
+
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c)=agpio_cfg;
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=gpio1_mode;
+	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=gpio2_mode;
+	RALINK_REG(0xb0000600)=gpio_ctrl0;
+	RALINK_REG(0xb0000604)=gpio_ctrl1;
+	RALINK_REG(0xb0000620)=gpio_dat0;
+	RALINK_REG(0xb0000624)=gpio_dat1;
 }
 
 void gpio_test_old( void )
