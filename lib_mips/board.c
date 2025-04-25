@@ -2946,7 +2946,7 @@ void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
                 i, (before.dat0 >> i)&1, (after.dat0 >> i)&1);
         if (i < 32 && (diff1 & (1 << i)))
             printf("GPIO%d (DAT1) changed: 0x%X -> 0x%X\n", 
-                i+64, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
+                i+32, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
     }
 }
 
@@ -2993,6 +2993,7 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
+	gpio_init();
 
     gpio_snapshot pre_btn = get_gpio_status();
     printf("Press WPS button now!\n");
