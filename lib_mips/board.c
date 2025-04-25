@@ -2929,8 +2929,8 @@ gpio_snapshot get_gpio_status() {
 void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
     u32 diff0 = before.dat0 ^ after.dat0;
     u32 diff1 = before.dat1 ^ after.dat1;
-    
-    for (int i=0; i<32; i++) {
+    u8 i=0;
+    for (i=0; i<32; i++) {
         if (diff0 & (1 << i)) 
             printf("GPIO%d (DAT0) changed: 0x%X -> 0x%X\n", 
                 i, (before.dat0 >> i)&1, (after.dat0 >> i)&1);
@@ -2999,9 +2999,9 @@ void gpio_test(void) {
 		printf("\nTesting GPIO %d\n", i);
 		// 根据GPIO编号选择操作的数据寄存器（0x620或0x624）
 		if (i < 16) {
-		   RALINK_REG(0xb0000620) = \~(1 << i); // 点亮LED（低电平有效）
+		   RALINK_REG(0xb0000620) = ~(1 << i); // 点亮LED（低电平有效）
 		} else {
-		   RALINK_REG(0xb0000624) = \~(1 << (i - 16));
+		   RALINK_REG(0xb0000624) = ~(1 << (i - 16));
 		}
 		udelay(500000); // 保持点亮状态
 		// 检测WPS按钮
