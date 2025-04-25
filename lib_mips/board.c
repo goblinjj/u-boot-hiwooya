@@ -2906,7 +2906,8 @@ void set_gpio36_input(void) {
 
     // 清除 GPIO36 (位 4) 的方向位，设置为输入模式
     val &= ~(1 << 4);
-
+val &= ~(1 << 5);
+val &= ~(1 << 6);
     // 写回寄存器
     RALINK_REG(RT2880_REG_PIODIR + 0x04) = val;
 
@@ -2914,16 +2915,25 @@ void set_gpio36_input(void) {
 }
 int detect_wps( void )
 {
-	set_gpio36_input();
 	u32 val;
 	val=RALINK_REG(0xb0000624);//624
-	if(val&1<<6){
-		return 0;
-	}
-	else{
-		printf("wps button pressed!\n");
-		return 1;
-	}
+	// 检测 GPIO36、GPIO37、GPIO38
+    if ((val & (1 << 4)) && (val & (1 << 5)) && (val & (1 << 6))) {
+        // 如果 GPIO36、GPIO37、GPIO38 都是高电平
+        return 0;
+    } else {
+        // 如果任意一个 GPIO 是低电平
+        if (!(val & (1 << 4))) {
+            printf("GPIO36 is pressed!\n");
+        }
+        if (!(val & (1 << 5))) {
+            printf("GPIO37 is pressed!\n");
+        }
+        if (!(val & (1 << 6))) {
+            printf("GPIO38 is pressed!\n");
+        }
+        return 1;
+    }
 }
 // GPIO状态快照结构体
 typedef struct {
@@ -3011,7 +3021,6 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
-	gpio_init();
 	set_gpio36_input();
 
     gpio_snapshot pre_btn = get_gpio_status();
