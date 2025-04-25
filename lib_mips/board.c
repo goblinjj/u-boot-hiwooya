@@ -2898,6 +2898,20 @@ void led_off( void )
 	//gpio44 gpio_dset_1 634 set bit12
 	RALINK_REG(0xb0000634)=1<<12;
 }
+void set_gpio36_input(void) {
+    u32 val;
+
+    // 读取当前 GPIO 方向寄存器的值
+    val = RALINK_REG(RT2880_REG_PIODIR + 0x04);
+
+    // 清除 GPIO36 (位 4) 的方向位，设置为输入模式
+    val &= ~(1 << 4);
+
+    // 写回寄存器
+    RALINK_REG(RT2880_REG_PIODIR + 0x04) = val;
+
+    printf("GPIO36 is set to input mode.\n");
+}
 int detect_wps( void )
 {
 	u32 val;
@@ -2926,6 +2940,9 @@ gpio_snapshot get_gpio_status() {
 }
 // 打印 GPIO 快照数据
 void print_gpio_snapshot(const char* label, gpio_snapshot snapshot) {
+	u32 pio_mode = RALINK_REG(0xB0000060);
+	printf("PIO_MODE: 0x%08X\n", pio_mode);
+
     printf("%s:\n", label);
     printf("DAT0: 0x%08X\n", snapshot.dat0);
     printf("DAT1: 0x%08X\n", snapshot.dat1);
@@ -2994,6 +3011,7 @@ void gpio_test(void) {
 
 	udelay(600000);
 	gpio_init();
+	set_gpio36_input();
 
     gpio_snapshot pre_btn = get_gpio_status();
     printf("Press WPS button now!\n");
