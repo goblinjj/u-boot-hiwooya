@@ -2914,6 +2914,7 @@ void set_gpio36_input(void) {
 }
 int detect_wps( void )
 {
+	set_gpio36_input();
 	u32 val;
 	val=RALINK_REG(0xb0000624);//624
 	if(val&1<<6){
