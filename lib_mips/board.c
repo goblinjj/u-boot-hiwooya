@@ -2906,8 +2906,8 @@ void set_gpio36_input(void) {
 
     // 清除 GPIO36 (位 4) 的方向位，设置为输入模式
     val &= ~(1 << 4);
-val &= ~(1 << 5);
-val &= ~(1 << 6);
+    val &= ~(1 << 5);
+    val &= ~(1 << 6);
     // 写回寄存器
     RALINK_REG(RT2880_REG_PIODIR + 0x04) = val;
 
@@ -2924,13 +2924,13 @@ int detect_wps( void )
     } else {
         // 如果任意一个 GPIO 是低电平
         if (!(val & (1 << 4))) {
-            printf("GPIO36 is pressed!\n");
+            printf("GPIO36\n");
         }
         if (!(val & (1 << 5))) {
-            printf("GPIO37 is pressed!\n");
+            printf("GPIO37\n");
         }
         if (!(val & (1 << 6))) {
-            printf("GPIO38 is pressed!\n");
+            printf("GPIO38\n");
         }
         return 1;
     }
@@ -2951,9 +2951,6 @@ gpio_snapshot get_gpio_status() {
 }
 // 打印 GPIO 快照数据
 void print_gpio_snapshot(const char* label, gpio_snapshot snapshot) {
-	u32 pio_mode = RALINK_REG(0xB0000060);
-	printf("PIO_MODE: 0x%08X\n", pio_mode);
-
     printf("%s:\n", label);
     printf("DAT0: 0x%08X\n", snapshot.dat0);
     printf("DAT1: 0x%08X\n", snapshot.dat1);
