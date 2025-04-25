@@ -2991,6 +2991,8 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000600)=0xffffffff;
 	RALINK_REG(0xb0000604)=0xffffffff;
 	RALINK_REG(0xb0000604)&=~(0x01<<4);
+	RALINK_REG(0xb0000604)&=~(0x01<<5);
+	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
 
