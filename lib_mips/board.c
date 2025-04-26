@@ -2872,7 +2872,7 @@ void gpio_init(void)
 	u32 val;
 	printf( "MT7688 wifi module: www.hi-wooya.com\n" );
 	//set gpio2_mode 1:0=2b01 wled,p1,p2,p3,p4 is gpio.p0 is ephy
-	val = 0x551;
+	val = 0x519;
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=val;
 	RALINK_REG(0xb0000644)=0x0f<<7;
 	//gpio44 output gpio_ctrl_1 bit3=1
