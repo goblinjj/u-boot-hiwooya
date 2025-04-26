@@ -2900,7 +2900,6 @@ void led_off( void )
 }
 int detect_wps( void )
 {
-	gpio_init();
 	u32 val;
 	val=RALINK_REG(0xb0000624);//624
 	printf("GPIO data register: 0x%08X\n", val);
