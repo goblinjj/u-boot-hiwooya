@@ -2871,26 +2871,21 @@ void gpio_init(void)
 {
 	u32 val;
 	printf( "MT7688 wifi module: www.hi-wooya.com\n" );
-
 	//set gpio2_mode 1:0=2b01 wled,p1,p2,p3,p4 is gpio.p0 is ephy
-	val = 0x0;
+	val = 0x551;
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=val;
-	RALINK_REG(0xb0000644)=0x0f<<6;
-
-
+	RALINK_REG(0xb0000644)=0x0f<<7;
 	//gpio44 output gpio_ctrl_1 bit3=1
 	val=RALINK_REG(RT2880_REG_PIODIR+0x04);
 	val|=1<<12;
 	RALINK_REG(RT2880_REG_PIODIR+0x04)=val;
-
 	//set gpio1_mode 14=1b1	
 	val=RALINK_REG(RT2880_SYS_CNTL_BASE+0x60);	
 	val|=1<<14;
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=val;
-
 	//gpio38 input gpio_ctrl_1 bit5=0
 	val=RALINK_REG(RT2880_REG_PIODIR+0x04);	
-	val&=~(1<<4);
+	val&=~1<<4;
 	RALINK_REG(RT2880_REG_PIODIR+0x04)=val;	
 }
 void led_on( void )
@@ -2907,9 +2902,7 @@ int detect_wps( void )
 {
 	u32 val;
 	val=RALINK_REG(0xb0000624);//624
-	printf("GPIO data register: 0x%08X\n", val);
-
-	if(val&(1<<4)){
+	if(val&1<<4){
 		return 0;
 	}
 	else{
@@ -2917,47 +2910,8 @@ int detect_wps( void )
 		return 1;
 	}
 }
-// GPIO状态快照结构体
-typedef struct {
-    u32 dat0;
-    u32 dat1;
-    // 扩展更多寄存器（如存在GPIO组超过32位）
-} gpio_snapshot;
-
-// 获取当前所有GPIO状态
-gpio_snapshot get_gpio_status() {
-    gpio_snapshot s;
-    s.dat0 = RALINK_REG(0xb0000620);
-    s.dat1 = RALINK_REG(0xb0000624);
-    return s;
-}
-// 打印 GPIO 快照数据
-void print_gpio_snapshot(const char* label, gpio_snapshot snapshot) {
-    printf("%s:\n", label);
-    printf("DAT0: 0x%08X\n", snapshot.dat0);
-    printf("DAT1: 0x%08X\n", snapshot.dat1);
-}
-
-// 比对两次快照差异
-void find_changed_gpio(gpio_snapshot before, gpio_snapshot after) {
-    // 打印两次快照数据
-    print_gpio_snapshot("Before Snapshot", before);
-    print_gpio_snapshot("After Snapshot", after);
-    
-    u32 diff0 = before.dat0 ^ after.dat0;
-    u32 diff1 = before.dat1 ^ after.dat1;
-    u8 i=0;
-    for (i=0; i<64; i++) {
-        if (diff0 & (1 << i)) 
-            printf("GPIO%d (DAT0) changed: 0x%X -> 0x%X\n", 
-                i, (before.dat0 >> i)&1, (after.dat0 >> i)&1);
-        if (i < 32 && (diff1 & (1 << i)))
-            printf("GPIO%d (DAT1) changed: 0x%X -> 0x%X\n", 
-                i+32, (before.dat1 >> i)&1, (after.dat1 >> i)&1);
-    }
-}
-
-void gpio_test(void) {
+void gpio_test( void )
+{
 	u32 agpio_cfg,gpio1_mode,gpio2_mode,val; 
 	u32 gpio_ctrl0,gpio_ctrl1,gpio_dat0,gpio_dat1;
 	u8 i=0;
@@ -2997,41 +2951,21 @@ void gpio_test(void) {
 	//ctrl0,ctrl1
 	RALINK_REG(0xb0000600)=0xffffffff;
 	RALINK_REG(0xb0000604)=0xffffffff;
-	RALINK_REG(0xb0000604)&=~(0x01<<4);
+	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
-
-    gpio_snapshot pre_btn = get_gpio_status();
-    printf("Press WPS button now!\n");
-    udelay(2000000); // 留出2秒操作时间
-    gpio_snapshot post_btn = get_gpio_status();
-    
-    find_changed_gpio(pre_btn, post_btn);
-    
-    // ...后续LED测试代码...
-	for(i = 0; i < 32; i++) { 
-
-		// 假设GPIO0-GPIO31分布在两个数据寄存器中
-		printf("\nTesting GPIO %d\n", i);
-		// 根据GPIO编号选择操作的数据寄存器（0x620或0x624）
-		if (i < 16) {
-		   RALINK_REG(0xb0000620) = ~(1 << i); // 点亮LED（低电平有效）
-		} else {
-		   RALINK_REG(0xb0000624) = ~(1 << (i - 16));
-		}
-		udelay(500000); // 保持点亮状态
-		// 检测WPS按钮
-		if(detect_wps()) break; 
-		// 关闭当前LED
-		if (i < 16) {
-		   RALINK_REG(0xb0000620) = 0xffffffff;
-		} else {
-		   RALINK_REG(0xb0000624) = 0xffffffff;
-		}
-		udelay(500000);
+	for(i=0;i<100;i++){
+	printf("\nall led off\n");
+	RALINK_REG(0xb0000620)=0xffffffff;
+	RALINK_REG(0xb0000624)=0xffffffff;
+	udelay(200000);
+	printf("\nall led on\n");
+	RALINK_REG(0xb0000620)=0x0;
+	RALINK_REG(0xb0000624)=0x0;
+	udelay(200000);
+	if(detect_wps())
+	break;
 	}
-
-
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x3c)=agpio_cfg;
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x60)=gpio1_mode;
 	RALINK_REG(RT2880_SYS_CNTL_BASE+0x64)=gpio2_mode;
