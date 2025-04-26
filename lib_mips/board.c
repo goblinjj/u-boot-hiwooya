@@ -2887,7 +2887,7 @@ void gpio_init(void)
 
 	//gpio38 input gpio_ctrl_1 bit5=0
 	val=RALINK_REG(RT2880_REG_PIODIR+0x04);	
-	val&=~(1<<14);
+	val&=~(1<<4);
 	RALINK_REG(RT2880_REG_PIODIR+0x04)=val;	
 }
 void led_on( void )
@@ -2906,7 +2906,7 @@ int detect_wps( void )
 	val=RALINK_REG(0xb0000624);//624
 	printf("GPIO data register: 0x%08X\n", val);
 
-	if(val&(1<<14)){
+	if(val&(1<<4)){
 		return 0;
 	}
 	else{
@@ -2995,8 +2995,6 @@ void gpio_test(void) {
 	RALINK_REG(0xb0000600)=0xffffffff;
 	RALINK_REG(0xb0000604)=0xffffffff;
 	RALINK_REG(0xb0000604)&=~(0x01<<4);
-	RALINK_REG(0xb0000604)&=~(0x01<<5);
-	RALINK_REG(0xb0000604)&=~(0x01<<6);
 
 	udelay(600000);
 
